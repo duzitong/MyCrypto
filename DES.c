@@ -131,14 +131,63 @@ static const u8 SBox[8][64] =
 static const u8 PBox[32] =
 {
   15,  6, 19, 20, 28, 11, 27, 16,
-  0, 14, 22, 25,  4, 17, 30,  9,
-  1,  7, 23, 13, 31, 26,  2,  8,
+   0, 14, 22, 25,  4, 17, 30,  9,
+   1,  7, 23, 13, 31, 26,  2,  8,
   18, 12, 29,  5, 21, 10,  3, 24
 };
 
+// Macros
+#define CLRBIT( STR, IDX ) ( (STR)[(IDX)/8] &= ~(0x01 << (7 - ((IDX)%8))) )
+
+#define SETBIT( STR, IDX ) ( (STR)[(IDX)/8] |= (0x01 << (7 - ((IDX)%8))) )
+
+#define GETBIT( STR, IDX ) (( ((STR)[(IDX)/8]) >> (7 - ((IDX)%8)) ) & 0x01)
+
+
+
 int main()
 {
-  u8 a = 1;
-  u32 b = 1;
-  printf("%d %d", a, b);
+  u32 iKey[2];
+  u32 iPlain[2];
+  u32 oCipher[2];
+  u8 key[8];
+  u8 plain[8];
+  u8 cipher[8];
+  int i;
+  FILE *cFile;
+  FILE *kFile;
+  FILE *pFile;
+  for (i = 0; i < 2; i++)
+  {
+      iKey[i] = iPlain[i] = oCipher[i] = 0;
+  }
+  kFile = fopen("key.txt", "r");
+  for (i = 0; i < 2; i++)
+  {
+    fscanf(kFile, "%x", &iKey[i]);
+  }
+  fclose(kFile);
+  pFile = fopen("plain.txt", "r");
+  for (i = 0; i < 2; i++)
+  {
+    fscanf(pFile, "%x", &iPlain[i]);
+  }
+  fclose(pFile);
+  
+  // change u32 into u8 array
+  for (i = 0; i < 8; i++)
+  {
+    key[i] = (iKey[i / 4] >> (((3-i) % 4) * 8));
+    plain[i] = (iPlain[i / 4] >> (((3-i) % 4) * 8));
+  }
+  // key -> round keys
+  // IP
+  // round function
+  // IP'
+  // Output
+  cFile = fopen("cipher.txt", "w+");
+  for (i = 0; i < 2; i++)
+    fprintf(cFile, "%08x ", oCipher[i]);
+  fclose(cFile);
+  return 0;
 }
