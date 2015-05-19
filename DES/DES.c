@@ -143,6 +143,101 @@ static const u8 PBox[32] =
 
 #define GETBIT( STR, IDX ) (( ((STR)[(IDX)/8]) >> (7 - ((IDX)%8)) ) & 0x01)
 
+void rotateL(u8 *left, u8 *right, u8 times)
+{
+  u8 i;
+  for (i = 0; i < times; i++)
+  {
+    u8 carry;
+    u8 carry_;
+    // rotate left
+    carry = (left[3] >> 7);
+    carry_ = (left[2] >> 7);
+    left[2] = (left[2] << 1) + carry;
+    carry = (left[1] >> 7);
+    left[1] = (left[1] << 1) + carry_;
+    carry_ = (left[0] >> 7);
+    left[0] = (left[0] << 1) + carry;
+    left[3] = (left[3] << 1) + (carry_ << 4);
+    // rotate right
+    carry = (right[3] >> 7);
+    carry_ = (right[2] >> 7);
+    right[2] = (right[2] << 1) + carry;
+    carry = (right[1] >> 7);
+    right[1] = (right[1] << 1) + carry_;
+    carry_ = (right[0] >> 7);
+    right[0] = (right[0] << 1) + carry;
+    right[3] = (right[3] << 1) + (carry_ << 4);
+  }
+}
+
+void getRoundKeys(u8 *key, u8 *rkeys)
+{
+  u8 c[4], d[4];
+  int i, j;
+  // initialize c, d
+  for (i = 0; i < 4; i++)
+  {
+    c[i] = d[i] = 0;
+  }
+  // Use PC1
+  for (i = 0; i < 28; i++)
+  {
+    if (GETBIT(key, PC1[i]))
+      SETBIT(d, i);
+    if (GETBIT(key, PC1[i+28]))
+      SETBIT(c, i);
+  }
+  // Round function of key expansion
+  for (i = 0; i < 16; i++)
+  {
+    rotateL(c, d, move[i]);
+    // initialize round keys
+    for (j = 0; j < 6; j++)
+      rkeys[6*i+j] = 0;   
+    // Use PC2
+    for (j = 0; j < 48; j++)
+    {
+      if (PC2[j] < 28)
+      {
+        if (GETBIT(d, PC2[j]))
+          SETBIT(rkeys + (6*i), j);
+      }
+      else
+      {
+        if (GETBIT(c, PC2[j] - 28))
+          SETBIT(rkeys + (6*i), j);
+      }
+    }
+  }
+}
+
+void encrypt(u8 *plain, u8* rkeys, u8 *cipher)
+{
+  int i;
+  u8 l[4], r[4];
+  // initialize l, r
+  for (i = 0; i < 4; i++)
+  {
+    l[i] = r[i] = 0;
+  }
+  // clear cipher
+  for (i = 0; i < 8; i++)
+    cipher[i] = 0;
+  // IP
+  for (i = 0; i < 32; i++)
+  {
+    if (GETBIT(plain, IP[i]))
+      SETBIT(r, i);
+    if (GETBIT(plain, IP[i+32]))
+      SETBIT(l, i);
+  }
+  for (i = 0; i < 4; i++)
+    printf("%02x %02x\n", l[i], r[i]);
+  // Round function
+  // Swap back in the last round
+  // IPR
+}
 
 
 int main()
@@ -153,7 +248,8 @@ int main()
   u8 key[8];
   u8 plain[8];
   u8 cipher[8];
-  int i;
+  u8 rkeys[96];
+  int i, j;
   FILE *cFile;
   FILE *kFile;
   FILE *pFile;
@@ -181,9 +277,15 @@ int main()
     plain[i] = (iPlain[i / 4] >> (((3-i) % 4) * 8));
   }
   // key -> round keys
-  // IP
-  // round function
-  // IP'
+  getRoundKeys(key, rkeys);
+  //for (i = 0; i < 16; i++)
+  //{
+  //  for (j = 0; j < 6; j++)
+  //    printf("%02x ", rkeys[6*i+j]);
+  //  printf("\n");
+  //}
+  // Encrypt
+  encrypt(plain, rkeys, cipher);
   // Output
   cFile = fopen("cipher.txt", "w+");
   for (i = 0; i < 2; i++)
