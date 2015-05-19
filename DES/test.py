@@ -7,7 +7,7 @@ pList = ['00000000 00000000', '11111111 11111111', '12341234 12341234',
 cList = ['8ca64de9 c1b123a7', 'f40379ab 9e0ec533', 'ce93c61d 8d78e6fa',
          '73874878 eee078fb', '7caeec02 4ae1adcb', '6b866c00 d337caa8']
 
-for i in range(5,6):
+for i in range(len(kList)):
     kFile = open('key.txt', 'w+')
     pFile = open('plain.txt', 'w+')
 

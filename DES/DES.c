@@ -69,7 +69,7 @@ static const u8 PC2[48] =
   22, 18, 11,  3, 25,  7,
   15,  6, 26, 19, 12,  1,
   40, 51, 30, 36, 46, 54,
-  29, 39, 50, 33, 32, 47,
+  29, 39, 50, 44, 32, 47,
   43, 48, 38, 55, 33, 52,
   45, 41, 49, 35, 28, 31
 };
@@ -175,7 +175,7 @@ void getRoundKeys(u8 *key, u8 *rkeys)
 {
   u8 c[4], d[4];
   int i, j;
-  // initialize c, d
+  // Initialize c, d
   for (i = 0; i < 4; i++)
   {
     c[i] = d[i] = 0;
@@ -184,15 +184,15 @@ void getRoundKeys(u8 *key, u8 *rkeys)
   for (i = 0; i < 28; i++)
   {
     if (GETBIT(key, PC1[i]))
-      SETBIT(d, i);
-    if (GETBIT(key, PC1[i+28]))
       SETBIT(c, i);
+    if (GETBIT(key, PC1[i+28]))
+      SETBIT(d, i);
   }
   // Round function of key expansion
   for (i = 0; i < 16; i++)
   {
     rotateL(c, d, move[i]);
-    // initialize round keys
+    // Initialize round keys
     for (j = 0; j < 6; j++)
       rkeys[6*i+j] = 0;   
     // Use PC2
@@ -200,43 +200,108 @@ void getRoundKeys(u8 *key, u8 *rkeys)
     {
       if (PC2[j] < 28)
       {
-        if (GETBIT(d, PC2[j]))
+        if (GETBIT(c, PC2[j]))
           SETBIT(rkeys + (6*i), j);
       }
       else
       {
-        if (GETBIT(c, PC2[j] - 28))
+        if (GETBIT(d, PC2[j] - 28))
           SETBIT(rkeys + (6*i), j);
       }
     }
   }
 }
 
+void roundFunction(u8 *left, u8* rkey, u8 *right)
+{
+  u8 e[6], sin[8], sout[8], p[4];
+  int i;
+  // Initialize e
+  for (i = 0; i < 6; i++)
+    e[i] = 0;
+  // E
+  for (i = 0; i < 48; i++)
+    if (GETBIT(right, E[i]))
+      SETBIT(e, i);
+  // XOR round key
+  for (i = 0; i < 6; i++)
+    e[i] ^= rkey[i];
+  // S Box
+  // Fit e into sin
+  for (i = 0; i < 8; i++)
+    sin[i] = 0;
+  for (i = 0; i < 2; i++)
+  {
+    // 0 and 4
+    sin[4*i] = (e[3*i] >> 2);
+    // 1 and 3
+    sin[4*i + 1] = ((e[3*i] & 0x03) << 4 ) | (e[3*i + 1] >> 4);
+    // 2 and 5
+    sin[4*i + 2] = ((e[3*i + 1] & 0x0f) << 2 ) | (e[3*i + 2] >> 6);
+    // 3 and 6
+    sin[4*i + 3] = (e[3*i + 2] & 0x3f);
+  }
+  // Substitute
+  for (i = 0; i < 8; i++)
+    sout[i] = SBox[i][sin[i]];
+  // Fit sout into p
+  for (i = 0; i < 4; i++)
+    p[i] = (sout[2*i] << 4) | (sout[2*i + 1]);
+  // P Box
+  for (i = 0; i < 4; i++)
+    right[i] = 0;
+  for (i = 0; i < 32; i++)
+    if (GETBIT(p, PBox[i]))
+      SETBIT(right, i);
+  for (i = 0; i < 4; i++)
+    right[i] ^= left[i];
+}
+
 void encrypt(u8 *plain, u8* rkeys, u8 *cipher)
 {
-  int i;
-  u8 l[4], r[4];
-  // initialize l, r
+  int i, j;
+  u8 l[4], r[4], tmp[4];
+  // Initialize l, r
   for (i = 0; i < 4; i++)
   {
     l[i] = r[i] = 0;
   }
-  // clear cipher
-  for (i = 0; i < 8; i++)
-    cipher[i] = 0;
   // IP
   for (i = 0; i < 32; i++)
   {
     if (GETBIT(plain, IP[i]))
-      SETBIT(r, i);
-    if (GETBIT(plain, IP[i+32]))
       SETBIT(l, i);
+    if (GETBIT(plain, IP[i+32]))
+      SETBIT(r, i);
   }
-  for (i = 0; i < 4; i++)
-    printf("%02x %02x\n", l[i], r[i]);
   // Round function
+  for (i = 0; i < 16; i++)
+  {
+    for (j = 0; j < 4; j++)
+      tmp[j] = r[j];
+    roundFunction(l, rkeys+(i*6), r);
+    for (j = 0; j < 4; j++)
+      l[j] = tmp[j];
+  }
   // Swap back in the last round
+  // Do it in mind
   // IPR
+  // Initialize cipher
+  for (i = 0; i < 8; i++)
+    cipher[i] = 0;
+  for (i = 0; i < 64; i++)
+  {
+    if (IP_[i] < 32)
+    {
+      if (GETBIT(r, IP_[i]))
+        SETBIT(cipher, i);
+    }
+    else
+    {
+      if (GETBIT(l, IP_[i] - 32))
+        SETBIT(cipher, i);
+    }
+  }
 }
 
 
@@ -278,14 +343,14 @@ int main()
   }
   // key -> round keys
   getRoundKeys(key, rkeys);
-  //for (i = 0; i < 16; i++)
-  //{
-  //  for (j = 0; j < 6; j++)
-  //    printf("%02x ", rkeys[6*i+j]);
-  //  printf("\n");
-  //}
   // Encrypt
   encrypt(plain, rkeys, cipher);
+  // change u8 array into u32
+  for (i = 0; i < 4; i++)
+  {
+    oCipher[0] |= (cipher[i] << (8* (3-i)));
+    oCipher[1] |= (cipher[4+i] << (8* (3-i)));
+  }
   // Output
   cFile = fopen("cipher.txt", "w+");
   for (i = 0; i < 2; i++)
