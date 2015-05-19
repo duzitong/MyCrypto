@@ -304,6 +304,15 @@ void encrypt(u8 *plain, u8* rkeys, u8 *cipher)
   }
 }
 
+void decrypt(u8 *cipher, u8 *rkeys, u8 *decrypted)
+{
+  u8 irkeys[96];
+  int i,j;
+  for (i = 0; i < 16; i++)
+    for (j = 0; j < 6; j++)
+      irkeys[(15-i)*6 + j] = rkeys[i*6 + j];
+  encrypt(cipher, irkeys, decrypted);
+}
 
 int main()
 {
@@ -313,6 +322,7 @@ int main()
   u8 key[8];
   u8 plain[8];
   u8 cipher[8];
+  u8 decrypted[8];
   u8 rkeys[96];
   int i, j;
   FILE *cFile;
@@ -356,5 +366,13 @@ int main()
   for (i = 0; i < 2; i++)
     fprintf(cFile, "%08x ", oCipher[i]);
   fclose(cFile);
+  decrypt(cipher, rkeys, decrypted);
+  printf("plain:\t");
+  for (i = 0; i < 4; i++)
+    printf("%02x", decrypted[i]);
+  printf(" ");
+  for (i = 4; i < 8; i++)
+    printf("%02x", decrypted[i]);
+  printf("\n");
   return 0;
 }

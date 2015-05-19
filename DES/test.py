@@ -20,7 +20,7 @@ for i in range(len(kList)):
 
     cFile = open('cipher.txt', 'r')
     cipher = cFile.readline()
-    print(cipher)
+    print("cipher:\t" + cipher)
 
     if cipher.startswith(cList[i]):
         print(str(i) + ': Correct')
