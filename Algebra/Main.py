@@ -6,11 +6,11 @@ from MyAlgebra import ModInt, Matrix, gaussian_elimination
 a = ModInt(1, 5)
 b = ModInt(2, 3)
 
-l = [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+l = [[1, 2], [2, 3], [3, 4]]
+s = [[1], [2], [3]]
 
 ml = Matrix(l)
+ms = Matrix(s)
 
-print(ml)
-
-for i in gaussian_elimination(a, b):
+for i in gaussian_elimination(ml, ms):
     print(i)

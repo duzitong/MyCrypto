@@ -51,10 +51,10 @@ class Matrix:
             s += '\n'
         return s
 
-    def row_dim(self):
+    def row(self):
         return len(self.l)
 
-    def col_dim(self):
+    def col(self):
         return len(self.l[0])
 
     def validate(self):
@@ -69,9 +69,9 @@ class Matrix:
             raise e
         t = type(self.l[0][0])
         try:
-            assert t == ModInt or t == int or t == float
+            assert t == ModInt or int or float
         except Exception as e:
-            print('Type can only be ModInt or int')
+            print('Type can only be ModInt or int or float')
             raise e
         dim = len(self.l[0])
         for i in self.l:
@@ -94,5 +94,9 @@ class TypeException(Exception):
 
 def gaussian_elimination(a, b):
     """ Solve the system of linear equations ax = b, return x"""
+    assert type(a) == Matrix
+    assert type(b) == Matrix
+    assert b.col() == 1
+    assert a.row() == b.row()
     x = (a, b)
     return x
