@@ -102,6 +102,6 @@ def gaussian_elimination(a, b):
     assert type(a) == Matrix
     assert type(b) == Matrix
     assert b.col() == 1
-    assert a.col() == b.row()
+    assert a.row() == b.row()
     x = (a, b)
     return x
