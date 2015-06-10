@@ -2,6 +2,11 @@ __author__ = 'Duzitong'
 
 
 class ModInt:
+    """
+    $Z_p^*$ operations
+    p is a prime
+    If p is not a prime, there may be errors in division.
+    """
     def __init__(self, n, p):
         self.n = n % p
         self.p = p
@@ -84,12 +89,12 @@ class Matrix:
 
 class ShapeException(Exception):
     def __str__(self):
-        print('Matrix shape is not valid')
+        return 'Matrix shape is not valid'
 
 
 class TypeException(Exception):
     def __str__(self):
-        print('Type of elements are not same')
+        return 'Type of elements are not same'
 
 
 def gaussian_elimination(a, b):
